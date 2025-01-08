@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>물품 관리 시스템</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      .hidden {
+        display: none;
+      }
+      .button-container {
+        text-align: center;
+        margin-top: 50px;
+      }
+      .button-container button {
+        padding: 10px 20px;
+        font-size: 16px;
+        margin: 10px;
+        cursor: pointer;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+      }
+      .button-container button:hover {
+        opacity: 0.9;
+      }
+      .form-control,
+      table {
+        margin-top: 20px;
+        width: 100%;
+      }
+      .form-control input {
+        padding: 8px;
+        margin: 5px 0;
+      }
+      .btn {
+        padding: 5px 10px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
+      .btn-danger {
+        background-color: #dc3545;
+      }
+      .btn:hover {
+        opacity: 0.9;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+      }
+      th {
+        background-color: #f4f4f4;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 메인 화면 -->
+    <div id="mainScreen" class="button-container">
+      <h1>물품 관리 시스템</h1>
+      <button onclick="showSection('listSection')">물품 리스트 보기</button>
+      <button onclick="showSection('addSection')">물품 추가하기</button>
+      <button onclick="showSection('historySection')">수정 내역 보기</button>
+    </div>
+
+    <!-- 물품 리스트 화면 -->
+    <div id="listSection" class="hidden">
+      <h2>물품 리스트</h2>
+      <table id="inventoryTable">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>이름</th>
+            <th>수량</th>
+            <th>작업</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Items will be dynamically added here -->
+        </tbody>
+      </table>
+      <button class="btn" onclick="backToMain()">메인 화면으로</button>
+    </div>
+
+    <!-- 물품 추가 화면 -->
+    <div id="addSection" class="hidden">
+      <h2>물품 추가</h2>
+      <div class="form-control">
+        <input type="text" id="itemName" placeholder="물품 이름" />
+        <input type="number" id="itemQuantity" placeholder="수량" />
+        <button class="btn" onclick="addItem()">추가</button>
+      </div>
+      <button class="btn" onclick="backToMain()">메인 화면으로</button>
+    </div>
+
+    <!-- 수정 내역 화면 -->
+    <div id="historySection" class="hidden">
+      <h2>수정 내역</h2>
+      <table id="historyTable">
+        <thead>
+          <tr>
+            <th>수정 날짜</th>
+            <th>ID</th>
+            <th>수정 내용</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- History will be dynamically added here -->
+        </tbody>
+      </table>
+      <button class="btn" onclick="backToMain()">메인 화면으로</button>
+    </div>
+
+    <script>
+      // 로컬 스토리지에서 물품 로드
+      const loadInventory = () => {
+        const inventory = localStorage.getItem("inventory");
+        return inventory ? JSON.parse(inventory) : {};
+      };
+
+      // 로컬 스토리지에서 수정 내역 로드
+      const loadHistory = () => {
+        const history = localStorage.getItem("history");
+        return history ? JSON.parse(history) : [];
+      };
+
+      // 로컬 스토리지에 물품 저장
+      const saveInventory = (inventory) => {
+        localStorage.setItem("inventory", JSON.stringify(inventory));
+      };
+
+      // 로컬 스토리지에 수정 내역 저장
+      const saveHistory = (history) => {
+        localStorage.setItem("history", JSON.stringify(history));
+      };
+
+      // 섹션 보이기
+      const showSection = (sectionId) => {
+        document.getElementById("mainScreen").classList.add("hidden");
+        document.getElementById("listSection").classList.add("hidden");
+        document.getElementById("addSection").classList.add("hidden");
+        document.getElementById("historySection").classList.add("hidden");
+        document.getElementById(sectionId).classList.remove("hidden");
+        if (sectionId === "listSection") renderInventory();
+        if (sectionId === "historySection") renderHistory();
+      };
+
+      // 메인 화면으로 돌아가기
+      const backToMain = () => {
+        document.getElementById("mainScreen").classList.remove("hidden");
+        document.getElementById("listSection").classList.add("hidden");
+        document.getElementById("addSection").classList.add("hidden");
+        document.getElementById("historySection").classList.add("hidden");
+      };
+
+      // 물품 목록 렌더링
+      const renderInventory = () => {
+        const inventory = loadInventory();
+        const tableBody = document.querySelector("#inventoryTable tbody");
+        tableBody.innerHTML = ""; // 기존 내용 초기화
+        for (const [id, item] of Object.entries(inventory)) {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+                    <td>${id}</td>
+                    <td>${item.name}</td>
+                    <td>${item.quantity}</td>
+                    <td>
+                        <button class="btn" onclick="editItem('${id}')">수정</button>
+                        <button class="btn btn-danger" onclick="deleteItem('${id}')">삭제</button>
+                    </td>
+                `;
+          tableBody.appendChild(row);
+        }
+      };
+
+      // 수정 내역 렌더링
+      const renderHistory = () => {
+        const history = loadHistory();
+        const tableBody = document.querySelector("#historyTable tbody");
+        tableBody.innerHTML = ""; // 기존 내용 초기화
+        history.forEach((entry) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+                    <td>${entry.date}</td>
+                    <td>${entry.id}</td>
+                    <td>${entry.description}</td>
+                `;
+          tableBody.appendChild(row);
+        });
+      };
+
+      // ID 생성기
+      const generateId = (name) => {
+        const inventory = loadInventory();
+        let id = 1;
+        const usedNames = Object.values(inventory).map((item) => item.name);
+
+        while (
+          Object.keys(inventory).includes(String(id)) ||
+          usedNames.includes(name)
+        ) {
+          id++;
+        }
+        return id;
+      };
+
+      // 물품 추가
+      const addItem = () => {
+        const itemName = document.getElementById("itemName").value.trim();
+        const itemQuantity = parseInt(
+          document.getElementById("itemQuantity").value
+        );
+
+        if (!itemName || isNaN(itemQuantity)) {
+          alert("모든 필드를 올바르게 입력하세요.");
+          return;
+        }
+
+        const inventory = loadInventory();
+
+        const itemId = generateId(itemName);
+
+        inventory[itemId] = { name: itemName, quantity: itemQuantity };
+        saveInventory(inventory);
+        alert("물품이 추가되었습니다!");
+        document.getElementById("itemName").value = "";
+        document.getElementById("itemQuantity").value = "";
+      };
+
+      // 물품 삭제
+      const deleteItem = (itemId) => {
+        const inventory = loadInventory();
+        if (inventory[itemId]) {
+          delete inventory[itemId];
+          saveInventory(inventory);
+          renderInventory();
+        }
+      };
+
+      // 물품 수정
+      const editItem = (itemId) => {
+        const inventory = loadInventory();
+        const item = inventory[itemId];
+
+        if (!item) {
+          alert("존재하지 않는 물품입니다.");
+          return;
+        }
+
+        const newName = prompt("새 이름을 입력하세요:", item.name);
+        const newQuantity = prompt("새 수량을 입력하세요:", item.quantity);
+
+        if (newName === null || newQuantity === null) return; // 취소 시
+
+        const updatedName = newName.trim();
+        const updatedQuantity = parseInt(newQuantity);
+
+        if (!updatedName || isNaN(updatedQuantity)) {
+          alert("올바른 값을 입력하세요.");
+          return;
+        }
+
+        // 수정 내역 기록
+        const history = loadHistory();
+        const date = new Date().toLocaleString();
+        history.push({
+          date,
+          id: itemId,
+          description: `이름: ${item.name} -> ${updatedName}, 수량: ${item.quantity} -> ${updatedQuantity}`,
+        });
+
+        item.name = updatedName;
+        item.quantity = updatedQuantity;
+
+        saveInventory(inventory);
+        saveHistory(history);
+        renderInventory();
+      };
+
+      // 페이지 로드 시 초기화
+      document.addEventListener("DOMContentLoaded", () => {
+        backToMain(); // 메인 화면으로 설정
+      });
+    </script>
+  </body>
+</html>
